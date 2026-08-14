@@ -63,7 +63,6 @@
   }
 
   function formatMatchSheet(ws){
-    // 列幅：ゲーム、コート、ペア、休みを見やすくする。
     ws["!cols"]=[
       {wch:8},
       {wch:8},
@@ -111,17 +110,23 @@
   }
 
   function addButton(){
+    // CSV保存ボタンと初期版の説明はWeb画面から非表示にする。
     const csv=document.getElementById("csv");
-    if(!csv || document.getElementById("xlsx")) return;
+    if(csv) csv.style.display="none";
+    document.querySelectorAll(".note").forEach(el=>el.style.display="none");
+
+    if(document.getElementById("xlsx")) return;
+    const make=document.getElementById("make");
+    if(!make) return;
+
     const btn=document.createElement("button");
     btn.id="xlsx";
     btn.className="secondary";
     btn.disabled=true;
     btn.textContent="Excel保存";
     btn.addEventListener("click",exportExcel);
-    csv.insertAdjacentElement("afterend",btn);
+    make.insertAdjacentElement("afterend",btn);
 
-    const make=document.getElementById("make");
     make.addEventListener("click",()=>{
       btn.disabled=!document.querySelector("#result .game");
     });
