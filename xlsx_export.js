@@ -39,8 +39,6 @@
     return rows;
   }
 
-  // 「1 2 3 4」のようなメンバー番号をExcelが日付に自動変換しないよう、
-  // 組合せシートの文字列セルを明示的に「文字列」として設定する。
   function forceTextCells(ws, columns){
     const range=XLSX.utils.decode_range(ws["!ref"]||"A1");
     for(let r=range.s.r; r<=range.e.r; r++){
@@ -64,6 +62,25 @@
     return table ? tableToAoa(table) : [[title]];
   }
 
+  function formatMatchSheet(ws){
+    // 列幅：ゲーム、コート、ペア、休みを見やすくする。
+    ws["!cols"]=[
+      {wch:8},
+      {wch:8},
+      {wch:14},
+      {wch:14},
+      {wch:18}
+    ];
+    ws["!autofilter"]={ref:ws["!ref"]};
+  }
+
+  function formatMatrixSheet(ws){
+    const range=XLSX.utils.decode_range(ws["!ref"]||"A1");
+    const n=range.e.c-range.s.c+1;
+    ws["!cols"]=Array.from({length:n},()=>({wch:6}));
+    ws["!autofilter"]={ref:ws["!ref"]};
+  }
+
   async function exportExcel(){
     try{
       await loadSheetJS();
@@ -72,9 +89,11 @@
       const ws1=XLSX.utils.aoa_to_sheet(makeMatrixSheet("games1"));
       const ws2=XLSX.utils.aoa_to_sheet(makeMatrixSheet("games2"));
 
-      // ペア1・ペア2・休みはすべて「文字列」として保存する。
-      // これにより「1 2 3 4」がExcel上で「1月2日」等にならない。
+      // メンバー番号をExcelの日付へ変換させない。
       forceTextCells(wsMatch,[2,3,4]);
+      formatMatchSheet(wsMatch);
+      formatMatrixSheet(ws1);
+      formatMatrixSheet(ws2);
 
       XLSX.utils.book_append_sheet(wb,wsMatch,"組合せ");
       XLSX.utils.book_append_sheet(wb,ws1,"games1");
