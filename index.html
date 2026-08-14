@@ -35,7 +35,6 @@ function gameMemberB(nMem,nCot,nGame){
   const restCount=Array(nMem).fill(0);
   const restPairCount=Array.from({length:nMem},()=>Array(nMem).fill(0));
   let previousRest=new Set();
-
   for(let j=1;j<=nGame;j++){
     let rest=[];
     if(nNg>0){
@@ -47,8 +46,7 @@ function gameMemberB(nMem,nCot,nGame){
           if(candidates.length<nNg-k)candidates=available.slice();
           const scores=candidates.map(p=>({p,rc:restCount[p-1],pc:rest.reduce((s,r)=>s+restPairCount[p-1][r-1],0),priority:((p-1-((j-1)%nMem))%nMem+nMem)%nMem}));
           scores.sort((a,b)=>a.rc-b.rc||a.pc-b.pc||a.priority-b.priority);
-          const best=scores[0].p;
-          rest.push(best);available=available.filter(p=>p!==best);
+          const best=scores[0].p;rest.push(best);available=available.filter(p=>p!==best);
         }
       }
     }
@@ -59,106 +57,36 @@ function gameMemberB(nMem,nCot,nGame){
   }
   return {ngameMem};
 }
-
-function combinations4(n){
-  const out=[];
-  for(let a=1;a<=n-3;a++)for(let b=a+1;b<=n-2;b++)for(let c=b+1;c<=n-1;c++)for(let d=c+1;d<=n;d++)out.push([a,b,c,d]);
-  return out;
-}
+function combinations4(n){const out=[];for(let a=1;a<=n-3;a++)for(let b=a+1;b<=n-2;b++)for(let c=b+1;c<=n-1;c++)for(let d=c+1;d<=n;d++)out.push([a,b,c,d]);return out;}
 function matrix(n){return Array.from({length:n},()=>Array(n).fill(0));}
-function pairScore(m,a){let s=0;for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++)s+=m[a[i]-1][a[j]-1];return s;}
 function groupScore(m,a){let s=0;for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++)s+=m[a[i]-1][a[j]-1];return s;}
 function teamKey(a){return a.slice().sort((x,y)=>x-y).join("-");}
-function pairKey(a,b){return a<b?a+"-"+b:b+"-"+a;}
-
 function kumiawase4B(nMem,nCot,nGame){
-  const nNg=nMem-4*nCot;
-  const {ngameMem}=gameMemberB(nMem,nCot,nGame);
-  const teams=combinations4(nMem);
-  const games1=matrix(nMem),games2=matrix(nMem);
-  const usedGroups=new Map();
-  const game=Array.from({length:nGame},()=>({member:Array.from({length:nCot},()=>[0,0,0,0])}));
-
+  const {ngameMem}=gameMemberB(nMem,nCot,nGame);const teams=combinations4(nMem);const games1=matrix(nMem),games2=matrix(nMem);const usedGroups=new Map();const game=Array.from({length:nGame},()=>({member:Array.from({length:nCot},()=>[0,0,0,0])}));
   for(let ga=0;ga<nGame;ga++){
-    const restSet=new Set(ngameMem.map(r=>r[ga]));
-    const eligible=teams.filter(t=>!t.some(p=>restSet.has(p)));
-    const selectedMembers=new Set();
-
+    const restSet=new Set(ngameMem.map(r=>r[ga]));const eligible=teams.filter(t=>!t.some(p=>restSet.has(p)));const selectedMembers=new Set();
     for(let co=0;co<nCot;co++){
-      const available=eligible.filter(t=>!t.some(p=>selectedMembers.has(p)));
-      if(!available.length)throw new Error((ga+1)+"ゲーム目の"+(co+1)+"コート目で組み合わせを作れませんでした。");
-
-      const unused=available.filter(t=>!usedGroups.has(teamKey(t)));
-      const pool=unused.length?unused:available;
-      let best=null,bestScore=Infinity;
-      for(const t of pool){
-        const key=teamKey(t);
-        const repeat=usedGroups.get(key)||0;
-        const g1=groupScore(games1,t),g2=groupScore(games2,t);
-        const score=repeat*100000+g2*100+g1;
-        if(score<bestScore){bestScore=score;best=t;}
-      }
-
-      const m=best.slice();
-      const arrangements=[[m[0],m[1],m[2],m[3]],[m[0],m[2],m[1],m[3]],[m[0],m[3],m[1],m[2]]];
-      let chosen=arrangements[0],pairBest=Infinity;
+      const available=eligible.filter(t=>!t.some(p=>selectedMembers.has(p)));if(!available.length)throw new Error((ga+1)+"ゲーム目の"+(co+1)+"コート目で組み合わせを作れませんでした。");
+      const unused=available.filter(t=>!usedGroups.has(teamKey(t)));const pool=unused.length?unused:available;let best=null,bestScore=Infinity;
+      for(const t of pool){const repeat=usedGroups.get(teamKey(t))||0;const g1=groupScore(games1,t),g2=groupScore(games2,t);const score=repeat*100000+g2*100+g1;if(score<bestScore){bestScore=score;best=t;}}
+      const m=best.slice();const arrangements=[[m[0],m[1],m[2],m[3]],[m[0],m[2],m[1],m[3]],[m[0],m[3],m[1],m[2]]];let chosen=arrangements[0],pairBest=Infinity;
       for(const a of arrangements){const s=games2[a[0]-1][a[1]-1]+games2[a[2]-1][a[3]-1];if(s<pairBest){pairBest=s;chosen=a;}}
-      game[ga].member[co]=chosen.slice();
-      usedGroups.set(teamKey(chosen),(usedGroups.get(teamKey(chosen))||0)+1);
-      for(const p of chosen)selectedMembers.add(p);
-      for(let i=0;i<4;i++)for(let j=i+1;j<4;j++){const a=chosen[i],b=chosen[j];games1[a-1][b-1]++;games1[b-1][a-1]++;}
-      const p1=chosen.slice(0,2),p2=chosen.slice(2,4);
-      games2[p1[0]-1][p1[1]-1]++;games2[p1[1]-1][p1[0]-1]++;
-      games2[p2[0]-1][p2[1]-1]++;games2[p2[1]-1][p2[0]-1]++;
+      game[ga].member[co]=chosen.slice();usedGroups.set(teamKey(chosen),(usedGroups.get(teamKey(chosen))||0)+1);for(const p of chosen)selectedMembers.add(p);
+      for(let i=0;i<4;i++)for(let j=i+1;j<4;j++){const a=chosen[i],b=chosen[j];games1[a-1][b-1]++;games1[b-1][a-1]++;}const p1=chosen.slice(0,2),p2=chosen.slice(2,4);games2[p1[0]-1][p1[1]-1]++;games2[p1[1]-1][p1[0]-1]++;games2[p2[0]-1][p2[1]-1]++;games2[p2[1]-1][p2[0]-1]++;
     }
-  }
-  return {game,ngameMem,games1,games2};
+  }return {game,ngameMem,games1,games2};
 }
-
 function table(headers,rows){let s='<table><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>';for(const r of rows)s+='<tr>'+r.map(v=>'<td>'+v+'</td>').join('')+'</tr>';return s+'</tbody></table>';}
 function render(result,nMem,nCot,nGame){
   let html='';
-  for(let ga=0;ga<nGame;ga++){
-    html+='<section class="panel game"><h2>'+(ga+1)+'ゲーム目</h2>';
-    for(let co=0;co<nCot;co++){const m=result.game[ga].member[co];html+='<div class="court"><div class="court-title">'+(co+1)+'コート</div>'+table(['ペア1','ペア2'],[[m[0]+'・'+m[1],m[2]+'・'+m[3]]])+'</div>';}
-    const rest=result.ngameMem.map(r=>r[ga]);html+='<p class="rest">休み：'+(rest.length?rest.join('、'):'なし')+'</p></section>';
-  }
+  for(let ga=0;ga<nGame;ga++){html+='<section class="panel game"><h2>'+(ga+1)+'ゲーム目</h2>';for(let co=0;co<nCot;co++){const m=result.game[ga].member[co];html+='<div class="court"><div class="court-title">'+(co+1)+'コート</div>'+table(['ペア1','ペア2'],[[m[0]+'・'+m[1],m[2]+'・'+m[3]]])+'</div>';}const rest=result.ngameMem.map(r=>r[ga]);html+='<p class="rest">休み：'+(rest.length?rest.join('、'):'なし')+'</p></section>';}
   html+='<section class="panel"><h2>games1</h2><div class="matrix">'+table([''].concat(Array.from({length:nMem},(_,i)=>i+1)),result.games1.map((r,i)=>[i+1].concat(r)))+'</div></section>';
   html+='<section class="panel"><h2>games2</h2><div class="matrix">'+table([''].concat(Array.from({length:nMem},(_,i)=>i+1)),result.games2.map((r,i)=>[i+1].concat(r)))+'</div></section>';
   document.getElementById('result').innerHTML=html;
 }
-
-let last=null;
-function updateUsage(){const n=Number(document.getElementById('nMem').value)||0,c=Number(document.getElementById('nCot').value)||0;document.getElementById('usage').textContent=n&&c?'参加：'+n+'人 ／ 使用：'+4*c+'人 ／ 休み：'+Math.max(0,n-4*c)+'人':'';}
-document.querySelectorAll('input').forEach(e=>e.addEventListener('input',updateUsage));updateUsage();
-
-document.getElementById('make').addEventListener('click',()=>{
-  const nMem=Number(document.getElementById('nMem').value),nCot=Number(document.getElementById('nCot').value),nGame=Number(document.getElementById('nGame').value),err=document.getElementById('error');
-  err.textContent='';last=null;document.getElementById('excel').disabled=true;
-  try{
-    if(!Number.isInteger(nMem)||!Number.isInteger(nCot)||!Number.isInteger(nGame))throw new Error('人数・コート数・ゲーム数は整数で入力してください。');
-    if(nMem<4)throw new Error('参加人数は4人以上にしてください。');
-    if(nMem>24)throw new Error('参加人数は24人までにしてください。');
-    if(nCot<1||nGame<1)throw new Error('コート数とゲーム数は1以上にしてください。');
-    if(nMem<4*nCot)throw new Error('参加人数がコート数に対して不足しています。');
-    const t0=performance.now();last=kumiawase4B(nMem,nCot,nGame);render(last,nMem,nCot,nGame);document.getElementById('excel').disabled=false;err.textContent='計算時間：'+((performance.now()-t0)/1000).toFixed(2)+'秒';
-  }catch(e){document.getElementById('result').innerHTML='';err.textContent=e.message;}
-});
-
-document.getElementById('excel').addEventListener('click',async()=>{
-  if(!last)return;
-  const status=document.getElementById('error');
-  try{
-    if(!window.XLSX){status.textContent='Excel出力用ライブラリを読み込んでいます…';await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('Excel出力用ライブラリを読み込めませんでした。'));document.head.appendChild(s);});}
-    const rows=[['ゲーム','コート','ペア1','ペア2','休み']];
-    const nGame=last.game.length,nCot=last.game[0].member.length;
-    for(let g=0;g<nGame;g++){const rest=last.ngameMem.map(r=>r[g]).join('、');for(let c=0;c<nCot;c++){const m=last.game[g].member[c];rows.push([g+1,c+1,m[0]+'・'+m[1],m[2]+'・'+m[3],rest]);}}
-    const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:8},{wch:8},{wch:14},{wch:14},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'ゲーム表');
-    const w1=XLSX.utils.aoa_to_sheet([[''].concat(last.games1[0].map((_,i)=>i+1)),...last.games1.map((r,i)=>[i+1,...r])]);XLSX.utils.book_append_sheet(wb,w1,'games1');
-    const w2=XLSX.utils.aoa_to_sheet([[''].concat(last.games2[0].map((_,i)=>i+1)),...last.games2.map((r,i)=>[i+1,...r])]);XLSX.utils.book_append_sheet(wb,w2,'games2');
-    XLSX.writeFile(wb,'pickleball_games.xlsx');status.textContent='Excel保存完了';
-  }catch(e){status.textContent=e.message;}
-});
+let last=null;function updateUsage(){const n=Number(document.getElementById('nMem').value)||0,c=Number(document.getElementById('nCot').value)||0;document.getElementById('usage').textContent=n&&c?'参加：'+n+'人 ／ 使用：'+4*c+'人 ／ 休み：'+Math.max(0,n-4*c)+'人':'';}document.querySelectorAll('input').forEach(e=>e.addEventListener('input',updateUsage));updateUsage();
+document.getElementById('make').addEventListener('click',()=>{const nMem=Number(document.getElementById('nMem').value),nCot=Number(document.getElementById('nCot').value),nGame=Number(document.getElementById('nGame').value),err=document.getElementById('error');err.textContent='';last=null;document.getElementById('excel').disabled=true;try{if(!Number.isInteger(nMem)||!Number.isInteger(nCot)||!Number.isInteger(nGame))throw new Error('人数・コート数・ゲーム数は整数で入力してください。');if(nMem<4)throw new Error('参加人数は4人以上にしてください。');if(nMem>24)throw new Error('参加人数は24人までにしてください。');if(nCot<1||nGame<1)throw new Error('コート数とゲーム数は1以上にしてください。');if(nMem<4*nCot)throw new Error('参加人数がコート数に対して不足しています。');const t0=performance.now();last=kumiawase4B(nMem,nCot,nGame);render(last,nMem,nCot,nGame);document.getElementById('excel').disabled=false;err.textContent='計算時間：'+((performance.now()-t0)/1000).toFixed(2)+'秒';}catch(e){document.getElementById('result').innerHTML='';err.textContent=e.message;}});
+document.getElementById('excel').addEventListener('click',async()=>{if(!last)return;const status=document.getElementById('error');try{if(!window.XLSX){status.textContent='Excel出力用ライブラリを読み込んでいます…';await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('Excel出力用ライブラリを読み込めませんでした。'));document.head.appendChild(s);});}const rows=[['ゲーム','コート','ペア1','ペア2','休み']];const nGame=last.game.length,nCot=last.game[0].member.length;for(let g=0;g<nGame;g++){const rest=last.ngameMem.map(r=>r[g]).join('、');for(let c=0;c<nCot;c++){const m=last.game[g].member[c];rows.push([g+1,c+1,m[0]+'・'+m[1],m[2]+'・'+m[3],rest]);}}const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:8},{wch:8},{wch:14},{wch:14},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'ゲーム表');const w1=XLSX.utils.aoa_to_sheet([[''].concat(last.games1[0].map((_,i)=>i+1)),...last.games1.map((r,i)=>[i+1,...r])]);XLSX.utils.book_append_sheet(wb,w1,'games1');const w2=XLSX.utils.aoa_to_sheet([[''].concat(last.games2[0].map((_,i)=>i+1)),...last.games2.map((r,i)=>[i+1,...r])]);XLSX.utils.book_append_sheet(wb,w2,'games2');XLSX.writeFile(wb,'pickleball_games.xlsx');status.textContent='Excel保存完了';}catch(e){status.textContent=e.message;}});
 </script>
 </body>
 </html>
