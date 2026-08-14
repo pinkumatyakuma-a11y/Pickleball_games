@@ -5,33 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pickleball Games</title>
 <style>
-* { box-sizing: border-box; }
-body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; background:#f5f7fa; color:#222; }
-header { background:#1f2937; color:#fff; padding:18px 20px; }
-header h1 { margin:0; font-size:24px; }
-main { max-width:1100px; margin:20px auto; padding:0 16px 40px; }
-.panel { background:#fff; border-radius:12px; padding:18px; margin-bottom:18px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
-.form { display:grid; grid-template-columns:repeat(3,minmax(140px,1fr)); gap:14px; }
-label { font-weight:700; }
-input { width:100%; margin-top:6px; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:17px; }
-.info { margin-top:12px; color:#475569; font-weight:600; }
-button { margin-top:14px; padding:11px 18px; border:0; border-radius:8px; background:#2563eb; color:#fff; font-size:16px; cursor:pointer; }
-button.secondary { background:#475569; margin-left:8px; }
-button:disabled { opacity:.5; cursor:not-allowed; }
-.error { color:#b91c1c; margin-top:12px; font-weight:700; white-space:pre-wrap; }
-.game { margin-bottom:18px; }
-.game h2 { margin-top:0; }
-.court { display:inline-block; vertical-align:top; margin:0 14px 12px 0; }
-.court-title { font-weight:700; margin-bottom:5px; }
-table { border-collapse:collapse; }
-th,td { border:1px solid #cbd5e1; padding:7px 10px; text-align:center; }
-th { background:#e2e8f0; }
-.matrix { overflow-x:auto; }
-.matrix table { min-width:0; }
-.matrix th,.matrix td { min-width:34px; padding:5px 7px; }
-.rest { color:#475569; margin:4px 0 0; }
-.note { color:#64748b; font-size:14px; }
-@media(max-width:650px){ .form{grid-template-columns:1fr;} button.secondary{margin-left:0;} .court{display:block;} }
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f5f7fa;color:#222}header{background:#1f2937;color:#fff;padding:18px 20px}header h1{margin:0;font-size:24px}main{max-width:1100px;margin:20px auto;padding:0 16px 40px}.panel{background:#fff;border-radius:12px;padding:18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.08)}.form{display:grid;grid-template-columns:repeat(3,minmax(140px,1fr));gap:14px}label{font-weight:700}input{width:100%;margin-top:6px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:17px}.info{margin-top:12px;color:#475569;font-weight:600}button{margin-top:14px;padding:11px 18px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-size:16px;cursor:pointer}button.secondary{background:#475569;margin-left:8px}button:disabled{opacity:.5;cursor:not-allowed}.error{color:#b91c1c;margin-top:12px;font-weight:700;white-space:pre-wrap}.game{margin-bottom:18px}.game h2{margin-top:0}.court{display:inline-block;vertical-align:top;margin:0 14px 12px 0}.court-title{font-weight:700;margin-bottom:5px}table{border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:center}th{background:#e2e8f0}.matrix{overflow-x:auto}.matrix table{min-width:0}.matrix th,.matrix td{min-width:34px;padding:5px 7px}.rest{color:#475569;margin:4px 0 0}.status{color:#475569;margin-top:12px}@media(max-width:650px){.form{grid-template-columns:1fr}.court{display:block}button.secondary{margin-left:0}}
 </style>
 </head>
 <body>
@@ -40,21 +14,14 @@ th { background:#e2e8f0; }
 <section class="panel">
 <h2>ゲーム設定</h2>
 <div class="form">
-<label>参加人数
-<input id="nMem" type="number" min="4" max="24" value="11">
-</label>
-<label>コート数
-<input id="nCot" type="number" min="1" value="2">
-</label>
-<label>ゲーム数
-<input id="nGame" type="number" min="1" max="100" value="10">
-</label>
+<label>参加人数<input id="nMem" type="number" min="4" max="24" value="11"></label>
+<label>コート数<input id="nCot" type="number" min="1" value="2"></label>
+<label>ゲーム数<input id="nGame" type="number" min="1" max="100" value="10"></label>
 </div>
 <div id="usage" class="info"></div>
 <button id="make">組み合わせ作成</button>
-<button id="csv" class="secondary" disabled>CSV保存</button>
+<button id="excel" class="secondary" disabled>Excel保存</button>
 <div id="error" class="error"></div>
-<p class="note">現在は kumiawase4b.m / game_memberb.m の考え方をWeb版へ移した初期版です。アルゴリズムの改良はまだ行いません。</p>
 </section>
 <div id="result"></div>
 </main>
@@ -62,203 +29,135 @@ th { background:#e2e8f0; }
 "use strict";
 
 function gameMemberB(nMem,nCot,nGame){
-  if(nMem < 4*nCot) throw new Error("参加人数がコート数に対して不足しています。");
+  if(nMem<4*nCot)throw new Error("参加人数がコート数に対して不足しています。");
   const nNg=nMem-4*nCot;
-  const gameMem=Array.from({length:4*nCot},()=>Array(nGame).fill(0));
   const ngameMem=Array.from({length:nNg},()=>Array(nGame).fill(0));
-  const gameMemSum=Array(nGame).fill(0);
   const restCount=Array(nMem).fill(0);
   const restPairCount=Array.from({length:nMem},()=>Array(nMem).fill(0));
+  let previousRest=new Set();
 
   for(let j=1;j<=nGame;j++){
     let rest=[];
-    if(j===1){
-      for(let p=nMem-nNg+1;p<=nMem;p++) rest.push(p);
-    }else{
-      let available=Array.from({length:nMem},(_,i)=>i+1);
-      for(let k=0;k<nNg;k++){
-        let pairScore;
-        if(rest.length===0) pairScore=available.map(()=>0);
-        else pairScore=available.map(p=>rest.reduce((s,r)=>s+restPairCount[p-1][r-1],0));
-        const rc=available.map(p=>restCount[p-1]);
-        const minRest=Math.min(...rc);
-        let candidateIndex=[];
-        for(let i=0;i<rc.length;i++) if(rc[i]===minRest) candidateIndex.push(i);
-        const minPair=Math.min(...candidateIndex.map(i=>pairScore[i]));
-        candidateIndex=candidateIndex.filter(i=>pairScore[i]===minPair);
-        const candidate=candidateIndex.map(i=>available[i]);
-        let best=candidate[0], bestPriority=Infinity;
-        for(const p of candidate){
-          const priority=((p-1-((j-1)%nMem))%nMem+nMem)%nMem;
-          if(priority<bestPriority){bestPriority=priority;best=p;}
+    if(nNg>0){
+      if(j===1){for(let p=nMem-nNg+1;p<=nMem;p++)rest.push(p);}
+      else{
+        let available=Array.from({length:nMem},(_,i)=>i+1);
+        for(let k=0;k<nNg;k++){
+          let candidates=available.filter(p=>!previousRest.has(p));
+          if(candidates.length<nNg-k)candidates=available.slice();
+          const scores=candidates.map(p=>({p,rc:restCount[p-1],pc:rest.reduce((s,r)=>s+restPairCount[p-1][r-1],0),priority:((p-1-((j-1)%nMem))%nMem+nMem)%nMem}));
+          scores.sort((a,b)=>a.rc-b.rc||a.pc-b.pc||a.priority-b.priority);
+          const best=scores[0].p;
+          rest.push(best);available=available.filter(p=>p!==best);
         }
-        rest.push(best);
-        available=available.filter(p=>p!==best);
       }
     }
-
-    for(let r=0;r<nNg;r++) ngameMem[r][j-1]=rest[r];
-    for(const p of rest) restCount[p-1]++;
-    for(let a=0;a<nNg;a++) for(let b=a+1;b<nNg;b++){
-      const p1=rest[a]-1,p2=rest[b]-1;
-      restPairCount[p1][p2]++;
-      restPairCount[p2][p1]++;
-    }
-    const isPlaying=Array(nMem).fill(true);
-    for(const p of rest) isPlaying[p-1]=false;
-    const players=[];
-    for(let p=0;p<nMem;p++) if(isPlaying[p]) players.push(p+1);
-    for(let r=0;r<players.length;r++) gameMem[r][j-1]=players[r];
-    gameMemSum[j-1]=players.reduce((s,p)=>s+Math.pow(2,p),0);
+    for(let r=0;r<nNg;r++)ngameMem[r][j-1]=rest[r];
+    for(const p of rest)restCount[p-1]++;
+    for(let a=0;a<nNg;a++)for(let b=a+1;b<nNg;b++){const p1=rest[a]-1,p2=rest[b]-1;restPairCount[p1][p2]++;restPairCount[p2][p1]++;}
+    previousRest=new Set(rest);
   }
-  return {gameMem,ngameMem,gameMemSum};
+  return {ngameMem};
 }
 
 function combinations4(n){
   const out=[];
-  for(let a=1;a<=n-3;a++) for(let b=a+1;b<=n-2;b++) for(let c=b+1;c<=n-1;c++) for(let d=c+1;d<=n;d++) out.push([a,b,c,d]);
+  for(let a=1;a<=n-3;a++)for(let b=a+1;b<=n-2;b++)for(let c=b+1;c<=n-1;c++)for(let d=c+1;d<=n;d++)out.push([a,b,c,d]);
   return out;
 }
 function matrix(n){return Array.from({length:n},()=>Array(n).fill(0));}
-function mask4(a){return a.reduce((s,p)=>s+Math.pow(2,p),0);}
-function sumSub(m,a){let s=0;for(const r of a)for(const c of a)s+=m[r-1][c-1];return s;}
-function maxSub(m,a){let s=0;for(const r of a)for(const c of a)s=Math.max(s,m[r-1][c-1]);return s;}
-function maskOverlap(a,b){return (a & b)!==0;}
+function pairScore(m,a){let s=0;for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++)s+=m[a[i]-1][a[j]-1];return s;}
+function groupScore(m,a){let s=0;for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++)s+=m[a[i]-1][a[j]-1];return s;}
+function teamKey(a){return a.slice().sort((x,y)=>x-y).join("-");}
+function pairKey(a,b){return a<b?a+"-"+b:b+"-"+a;}
 
 function kumiawase4B(nMem,nCot,nGame){
   const nNg=nMem-4*nCot;
   const {ngameMem}=gameMemberB(nMem,nCot,nGame);
-  const combinations=combinations4(nMem);
-  const team0=combinations.map((members,i)=>({id:i+1,members,mask:mask4(members)}));
-  const games1=matrix(nMem);
-  const games2=matrix(nMem);
+  const teams=combinations4(nMem);
+  const games1=matrix(nMem),games2=matrix(nMem);
+  const usedGroups=new Map();
   const game=Array.from({length:nGame},()=>({member:Array.from({length:nCot},()=>[0,0,0,0])}));
 
   for(let ga=0;ga<nGame;ga++){
-    let team1=team0;
-    if(nNg>0){
-      const restMask=ngameMem.map(row=>row[ga]).reduce((s,p)=>s+Math.pow(2,p),0);
-      team1=team0.filter(t=>!maskOverlap(t.mask,restMask));
-    }
-    let memTmp0=[];
-    for(let co=0;co<nCot;co++){
-      let team3=team1;
-      if(co>0){
-        const usedMask=mask4(memTmp0);
-        team3=team1.filter(t=>!maskOverlap(t.mask,usedMask));
-      }
-      if(team3.length===0) throw new Error((ga+1)+"ゲーム目の"+(co+1)+"コート目で組み合わせを作れませんでした。");
+    const restSet=new Set(ngameMem.map(r=>r[ga]));
+    const eligible=teams.filter(t=>!t.some(p=>restSet.has(p)));
+    const selectedMembers=new Set();
 
+    for(let co=0;co<nCot;co++){
+      const available=eligible.filter(t=>!t.some(p=>selectedMembers.has(p)));
+      if(!available.length)throw new Error((ga+1)+"ゲーム目の"+(co+1)+"コート目で組み合わせを作れませんでした。");
+
+      const unused=available.filter(t=>!usedGroups.has(teamKey(t)));
+      const pool=unused.length?unused:available;
       let best=null,bestScore=Infinity;
-      for(const t of team3){
-        const s1=sumSub(games1,t.members);
-        const s2=sumSub(games2,t.members);
-        const s3=maxSub(games1,t.members);
-        const score=100*s3+10*s2+s1;
+      for(const t of pool){
+        const key=teamKey(t);
+        const repeat=usedGroups.get(key)||0;
+        const g1=groupScore(games1,t),g2=groupScore(games2,t);
+        const score=repeat*100000+g2*100+g1;
         if(score<bestScore){bestScore=score;best=t;}
       }
-      const m=best.members;
-      const arrangements=[[m[0],m[1],m[2],m[3]],[m[0],m[2],m[1],m[3]],[m[0],m[3],m[1],m[2]]];
-      let bestArr=0,bestPair=Infinity;
-      for(let i=0;i<3;i++){
-        const a=arrangements[i];
-        const s=games2[a[0]-1][a[1]-1]+games2[a[2]-1][a[3]-1];
-        if(s<bestPair){bestPair=s;bestArr=i;}
-      }
-      const selected=arrangements[bestArr];
-      game[ga].member[co]=selected.slice();
 
-      for(const r of selected) for(const c of selected) if(r!==c) games1[r-1][c-1]++;
-      const p1=selected.slice(0,2),p2=selected.slice(2,4);
-      games2[p1[0]-1][p1[1]-1]++; games2[p1[1]-1][p1[0]-1]++;
-      games2[p2[0]-1][p2[1]-1]++; games2[p2[1]-1][p2[0]-1]++;
-      memTmp0=memTmp0.concat(selected);
+      const m=best.slice();
+      const arrangements=[[m[0],m[1],m[2],m[3]],[m[0],m[2],m[1],m[3]],[m[0],m[3],m[1],m[2]]];
+      let chosen=arrangements[0],pairBest=Infinity;
+      for(const a of arrangements){const s=games2[a[0]-1][a[1]-1]+games2[a[2]-1][a[3]-1];if(s<pairBest){pairBest=s;chosen=a;}}
+      game[ga].member[co]=chosen.slice();
+      usedGroups.set(teamKey(chosen),(usedGroups.get(teamKey(chosen))||0)+1);
+      for(const p of chosen)selectedMembers.add(p);
+      for(let i=0;i<4;i++)for(let j=i+1;j<4;j++){const a=chosen[i],b=chosen[j];games1[a-1][b-1]++;games1[b-1][a-1]++;}
+      const p1=chosen.slice(0,2),p2=chosen.slice(2,4);
+      games2[p1[0]-1][p1[1]-1]++;games2[p1[1]-1][p1[0]-1]++;
+      games2[p2[0]-1][p2[1]-1]++;games2[p2[1]-1][p2[0]-1]++;
     }
   }
   return {game,ngameMem,games1,games2};
 }
 
-function table(headers,rows){
-  let s='<table><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>';
-  for(const r of rows)s+='<tr>'+r.map(v=>'<td>'+v+'</td>').join('')+'</tr>';
-  return s+'</tbody></table>';
-}
+function table(headers,rows){let s='<table><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>';for(const r of rows)s+='<tr>'+r.map(v=>'<td>'+v+'</td>').join('')+'</tr>';return s+'</tbody></table>';}
 function render(result,nMem,nCot,nGame){
   let html='';
   for(let ga=0;ga<nGame;ga++){
-    html+='<section class="panel game"><h2>'+ (ga+1) +'ゲーム目</h2>';
-    for(let co=0;co<nCot;co++){
-      const m=result.game[ga].member[co];
-      html+='<div class="court"><div class="court-title">'+(co+1)+'コート</div>';
-      html+=table(['ペア1','ペア2'],[[m[0]+'・'+m[1],m[2]+'・'+m[3]]]);
-      html+='</div>';
-    }
-    const rest=result.ngameMem.map(r=>r[ga]);
-    html+='<p class="rest">休み：'+(rest.length?rest.join('、'):'なし')+'</p></section>';
+    html+='<section class="panel game"><h2>'+(ga+1)+'ゲーム目</h2>';
+    for(let co=0;co<nCot;co++){const m=result.game[ga].member[co];html+='<div class="court"><div class="court-title">'+(co+1)+'コート</div>'+table(['ペア1','ペア2'],[[m[0]+'・'+m[1],m[2]+'・'+m[3]]])+'</div>';}
+    const rest=result.ngameMem.map(r=>r[ga]);html+='<p class="rest">休み：'+(rest.length?rest.join('、'):'なし')+'</p></section>';
   }
-  html+='<section class="panel"><h2>games1</h2><div class="matrix">';
-  html+=table([''].concat(Array.from({length:nMem},(_,i)=>i+1)),result.games1.map((r,i)=>[i+1].concat(r)));
-  html+='</div></section>';
-  html+='<section class="panel"><h2>games2</h2><div class="matrix">';
-  html+=table([''].concat(Array.from({length:nMem},(_,i)=>i+1)),result.games2.map((r,i)=>[i+1].concat(r)));
-  html+='</div></section>';
+  html+='<section class="panel"><h2>games1</h2><div class="matrix">'+table([''].concat(Array.from({length:nMem},(_,i)=>i+1)),result.games1.map((r,i)=>[i+1].concat(r)))+'</div></section>';
+  html+='<section class="panel"><h2>games2</h2><div class="matrix">'+table([''].concat(Array.from({length:nMem},(_,i)=>i+1)),result.games2.map((r,i)=>[i+1].concat(r)))+'</div></section>';
   document.getElementById('result').innerHTML=html;
-}
-function csvCell(v){return '"'+String(v).replaceAll('"','""')+'"';}
-function makeCSV(result,nMem,nCot,nGame){
-  const rows=[];
-  rows.push(['ゲーム','コート','ペア1','ペア2','休み']);
-  for(let ga=0;ga<nGame;ga++){
-    const rest=result.ngameMem.map(r=>r[ga]).join(' ');
-    for(let co=0;co<nCot;co++){
-      const m=result.game[ga].member[co];
-      rows.push([ga+1,co+1,m[0]+'-'+m[1],m[2]+'-'+m[3],rest]);
-    }
-  }
-  rows.push([]); rows.push(['games1']); rows.push([''].concat(Array.from({length:nMem},(_,i)=>i+1)));
-  result.games1.forEach((r,i)=>rows.push([i+1].concat(r)));
-  rows.push([]); rows.push(['games2']); rows.push([''].concat(Array.from({length:nMem},(_,i)=>i+1)));
-  result.games2.forEach((r,i)=>rows.push([i+1].concat(r)));
-  return '\uFEFF'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
 }
 
 let last=null;
-function updateUsage(){
-  const n=Number(document.getElementById('nMem').value)||0;
-  const c=Number(document.getElementById('nCot').value)||0;
-  const play=4*c;
-  document.getElementById('usage').textContent=n&&c?'参加：'+n+'人 ／ 使用：'+play+'人 ／ 休み：'+Math.max(0,n-play)+'人':'';
-}
-document.querySelectorAll('input').forEach(e=>e.addEventListener('input',updateUsage));
-updateUsage();
+function updateUsage(){const n=Number(document.getElementById('nMem').value)||0,c=Number(document.getElementById('nCot').value)||0;document.getElementById('usage').textContent=n&&c?'参加：'+n+'人 ／ 使用：'+4*c+'人 ／ 休み：'+Math.max(0,n-4*c)+'人':'';}
+document.querySelectorAll('input').forEach(e=>e.addEventListener('input',updateUsage));updateUsage();
 
 document.getElementById('make').addEventListener('click',()=>{
-  const nMem=Number(document.getElementById('nMem').value);
-  const nCot=Number(document.getElementById('nCot').value);
-  const nGame=Number(document.getElementById('nGame').value);
-  const err=document.getElementById('error');
-  err.textContent=''; document.getElementById('csv').disabled=true; last=null;
+  const nMem=Number(document.getElementById('nMem').value),nCot=Number(document.getElementById('nCot').value),nGame=Number(document.getElementById('nGame').value),err=document.getElementById('error');
+  err.textContent='';last=null;document.getElementById('excel').disabled=true;
   try{
-    if(!Number.isInteger(nMem)||!Number.isInteger(nCot)||!Number.isInteger(nGame)) throw new Error('人数・コート数・ゲーム数は整数で入力してください。');
-    if(nMem<4) throw new Error('参加人数は4人以上にしてください。');
-    if(nCot<1) throw new Error('コート数は1面以上にしてください。');
-    if(nGame<1) throw new Error('ゲーム数は1ゲーム以上にしてください。');
-    if(nMem<4*nCot) throw new Error('参加人数がコート数に対して不足しています。');
-    if(nMem>24) throw new Error('初期版では参加人数は24人までにしてください。');
-    const t0=performance.now();
-    last=kumiawase4B(nMem,nCot,nGame);
-    render(last,nMem,nCot,nGame);
-    document.getElementById('csv').disabled=false;
-    err.textContent='計算時間：'+((performance.now()-t0)/1000).toFixed(2)+'秒';
+    if(!Number.isInteger(nMem)||!Number.isInteger(nCot)||!Number.isInteger(nGame))throw new Error('人数・コート数・ゲーム数は整数で入力してください。');
+    if(nMem<4)throw new Error('参加人数は4人以上にしてください。');
+    if(nMem>24)throw new Error('参加人数は24人までにしてください。');
+    if(nCot<1||nGame<1)throw new Error('コート数とゲーム数は1以上にしてください。');
+    if(nMem<4*nCot)throw new Error('参加人数がコート数に対して不足しています。');
+    const t0=performance.now();last=kumiawase4B(nMem,nCot,nGame);render(last,nMem,nCot,nGame);document.getElementById('excel').disabled=false;err.textContent='計算時間：'+((performance.now()-t0)/1000).toFixed(2)+'秒';
   }catch(e){document.getElementById('result').innerHTML='';err.textContent=e.message;}
 });
 
-document.getElementById('csv').addEventListener('click',()=>{
+document.getElementById('excel').addEventListener('click',async()=>{
   if(!last)return;
-  const nMem=Number(document.getElementById('nMem').value),nCot=Number(document.getElementById('nCot').value),nGame=Number(document.getElementById('nGame').value);
-  const blob=new Blob([makeCSV(last,nMem,nCot,nGame)],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a'); const url=URL.createObjectURL(blob);
-  a.href=url; a.download='pickleball_games.csv'; a.click(); URL.revokeObjectURL(url);
+  const status=document.getElementById('error');
+  try{
+    if(!window.XLSX){status.textContent='Excel出力用ライブラリを読み込んでいます…';await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('Excel出力用ライブラリを読み込めませんでした。'));document.head.appendChild(s);});}
+    const rows=[['ゲーム','コート','ペア1','ペア2','休み']];
+    const nGame=last.game.length,nCot=last.game[0].member.length;
+    for(let g=0;g<nGame;g++){const rest=last.ngameMem.map(r=>r[g]).join('、');for(let c=0;c<nCot;c++){const m=last.game[g].member[c];rows.push([g+1,c+1,m[0]+'・'+m[1],m[2]+'・'+m[3],rest]);}}
+    const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:8},{wch:8},{wch:14},{wch:14},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'ゲーム表');
+    const w1=XLSX.utils.aoa_to_sheet([[''].concat(last.games1[0].map((_,i)=>i+1)),...last.games1.map((r,i)=>[i+1,...r])]);XLSX.utils.book_append_sheet(wb,w1,'games1');
+    const w2=XLSX.utils.aoa_to_sheet([[''].concat(last.games2[0].map((_,i)=>i+1)),...last.games2.map((r,i)=>[i+1,...r])]);XLSX.utils.book_append_sheet(wb,w2,'games2');
+    XLSX.writeFile(wb,'pickleball_games.xlsx');status.textContent='Excel保存完了';
+  }catch(e){status.textContent=e.message;}
 });
 </script>
 </body>
