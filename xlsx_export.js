@@ -24,6 +24,92 @@
     return rows;
   }
 
+  // ゲーム作成後、最初の一巡を残して、それ以降のゲームを並び替える。
+  // 隣り合うゲームで同じ人が連続して休まない順番を探す。
+  function reorderRestGames(){
+    const sections=Array.from(document.querySelectorAll("#result .game"));
+    if(sections.length<2) return;
+
+    const nMem=Number(document.getElementById("nMem")?.value||0);
+    const nCot=Number(document.getElementById("nCot")?.value||0);
+    const restCount=nMem-4*nCot;
+    if(!Number.isInteger(restCount) || restCount<=0) return;
+
+    // 全員が一度休むところまでを一巡とする。
+    const firstRound=Math.min(sections.length,Math.ceil(nMem/restCount));
+    if(sections.length<=firstRound) return;
+
+    function getRest(section){
+      const p=section.querySelector(".rest");
+      if(!p) return new Set();
+      const text=p.textContent.replace(/^休み：/,"").trim();
+      if(!text || text==="なし") return new Set();
+      return new Set(text.split(/[、,\s]+/).map(Number).filter(Number.isFinite));
+    }
+
+    function disjoint(a,b){
+      for(const x of a) if(b.has(x)) return false;
+      return true;
+    }
+
+    const tail=sections.slice(firstRound).map((section,index)=>({
+      section,
+      original:index,
+      rest:getRest(section)
+    }));
+
+    // 可能な並びを探索。候補が少ないものから試すので、通常は高速。
+    function makePath(items,previous){
+      const used=Array(items.length).fill(false);
+      const path=[];
+
+      function dfs(prev,depth){
+        if(depth===items.length) return true;
+
+        const candidates=[];
+        for(let i=0;i<items.length;i++){
+          if(used[i]) continue;
+          if(prev && !disjoint(prev.rest,items[i].rest)) continue;
+
+          let nextCount=0;
+          for(let j=0;j<items.length;j++){
+            if(used[j] || j===i) continue;
+            if(disjoint(items[i].rest,items[j].rest)) nextCount++;
+          }
+          candidates.push({i,nextCount});
+        }
+
+        candidates.sort((a,b)=>a.nextCount-b.nextCount || items[a.i].original-items[b.i].original);
+
+        for(const c of candidates){
+          used[c.i]=true;
+          path.push(items[c.i]);
+          if(dfs(items[c.i],depth+1)) return true;
+          path.pop();
+          used[c.i]=false;
+        }
+        return false;
+      }
+
+      return dfs(previous,0) ? path.slice() : null;
+    }
+
+    const previous=firstRound>0 ? {rest:getRest(sections[firstRound-1])} : null;
+    const ordered=makePath(tail,previous);
+
+    // 条件を満たす完全な並びがなければ、元の順番を維持する。
+    if(!ordered) return;
+
+    const parent=sections[0].parentNode;
+    ordered.forEach(item=>parent.appendChild(item.section));
+
+    // 表示上のゲーム番号を振り直す。
+    Array.from(document.querySelectorAll("#result .game")).forEach((section,i)=>{
+      const h=section.querySelector("h2");
+      if(h) h.textContent=(i+1)+"ゲーム目";
+    });
+  }
+
   function makeMatchSheet(){
     const rows=[["ゲーム","コート","ペア1","ペア2","休み"]];
     document.querySelectorAll("#result .game").forEach((section,gi)=>{
@@ -64,11 +150,7 @@
 
   function formatMatchSheet(ws){
     ws["!cols"]=[
-      {wch:8},
-      {wch:8},
-      {wch:14},
-      {wch:14},
-      {wch:18}
+      {wch:8},{wch:8},{wch:14},{wch:14},{wch:18}
     ];
     ws["!autofilter"]={ref:ws["!ref"]};
   }
@@ -127,8 +209,12 @@
     btn.addEventListener("click",exportExcel);
     make.insertAdjacentElement("afterend",btn);
 
+    // 元の組み合わせ作成処理がDOMを描画した後に並び替える。
     make.addEventListener("click",()=>{
-      btn.disabled=!document.querySelector("#result .game");
+      setTimeout(()=>{
+        reorderRestGames();
+        btn.disabled=!document.querySelector("#result .game");
+      },0);
     });
   }
 
