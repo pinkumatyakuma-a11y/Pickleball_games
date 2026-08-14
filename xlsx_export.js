@@ -27,7 +27,10 @@
   // ゲーム作成後、最初の一巡を残して、それ以降のゲームを並び替える。
   // 隣り合うゲームで同じ人が連続して休まない順番を探す。
   function reorderRestGames(){
-    const sections=Array.from(document.querySelectorAll("#result .game"));
+    const result=document.getElementById("result");
+    if(!result) return;
+
+    const sections=Array.from(result.querySelectorAll(".game"));
     if(sections.length<2) return;
 
     const nMem=Number(document.getElementById("nMem")?.value||0);
@@ -58,7 +61,6 @@
       rest:getRest(section)
     }));
 
-    // 可能な並びを探索。候補が少ないものから試すので、通常は高速。
     function makePath(items,previous){
       const used=Array(items.length).fill(false);
       const path=[];
@@ -96,15 +98,17 @@
 
     const previous=firstRound>0 ? {rest:getRest(sections[firstRound-1])} : null;
     const ordered=makePath(tail,previous);
-
-    // 条件を満たす完全な並びがなければ、元の順番を維持する。
     if(!ordered) return;
 
-    const parent=sections[0].parentNode;
-    ordered.forEach(item=>parent.appendChild(item.section));
+    // games1 / games2 はゲーム一覧の後ろに固定する。
+    // appendChild() だけで並び替えると、並び替えたゲームが games1 / games2 の後ろへ
+    // 移動してしまうため、行列パネルの直前へ順番に挿入する。
+    const matrixPanels=Array.from(result.querySelectorAll(".panel:not(.game)"));
+    const insertBefore=matrixPanels.length ? matrixPanels[0] : null;
+    ordered.forEach(item=>result.insertBefore(item.section,insertBefore));
 
     // 表示上のゲーム番号を振り直す。
-    Array.from(document.querySelectorAll("#result .game")).forEach((section,i)=>{
+    Array.from(result.querySelectorAll(".game")).forEach((section,i)=>{
       const h=section.querySelector("h2");
       if(h) h.textContent=(i+1)+"ゲーム目";
     });
