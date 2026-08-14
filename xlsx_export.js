@@ -39,6 +39,23 @@
     return rows;
   }
 
+  // 「1 2 3 4」のようなメンバー番号をExcelが日付に自動変換しないよう、
+  // 組合せシートの文字列セルを明示的に「文字列」として設定する。
+  function forceTextCells(ws, columns){
+    const range=XLSX.utils.decode_range(ws["!ref"]||"A1");
+    for(let r=range.s.r; r<=range.e.r; r++){
+      columns.forEach(c=>{
+        const addr=XLSX.utils.encode_cell({r:r,c:c});
+        const cell=ws[addr];
+        if(cell && cell.v!==undefined){
+          cell.t="s";
+          cell.v=String(cell.v);
+          cell.z="@";
+        }
+      });
+    }
+  }
+
   function makeMatrixSheet(title){
     const heading=[...document.querySelectorAll("#result h2")].find(h=>h.textContent.trim()===title);
     if(!heading) return [[title]];
@@ -54,6 +71,11 @@
       const wsMatch=XLSX.utils.aoa_to_sheet(makeMatchSheet());
       const ws1=XLSX.utils.aoa_to_sheet(makeMatrixSheet("games1"));
       const ws2=XLSX.utils.aoa_to_sheet(makeMatrixSheet("games2"));
+
+      // ペア1・ペア2・休みはすべて「文字列」として保存する。
+      // これにより「1 2 3 4」がExcel上で「1月2日」等にならない。
+      forceTextCells(wsMatch,[2,3,4]);
+
       XLSX.utils.book_append_sheet(wb,wsMatch,"組合せ");
       XLSX.utils.book_append_sheet(wb,ws1,"games1");
       XLSX.utils.book_append_sheet(wb,ws2,"games2");
